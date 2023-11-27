@@ -25,7 +25,7 @@ BuildRequires:  clang-devel >= %{llvm_maj_ver}
 #BuildRequires:  clang(major) = %{llvm_maj_ver}
 #BuildRequires:  lld-devel
 #BuildRequires:  llvm-devel(major) = %{llvm_maj_ver}
-BuildRequires:  rocm-device-libs >= %{llvm_maj_ver}
+BuildRequires:  rocm-device-libs
 BuildRequires:  zlib-devel
  
 #Only the following architectures are useful for ROCm packages:
