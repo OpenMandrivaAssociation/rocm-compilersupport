@@ -65,7 +65,9 @@ sed -i '/Args.push_back(ROCMIncludePath/,+1d' lib/comgr/src/comgr-compiler.cpp
 sed -i 's/lib\(\/clang\)/%{_lib}\1/' lib/comgr/src/comgr-compiler.cpp
  
 %build
-%cmake -S lib/comgr -DCMAKE_BUILD_TYPE="RELEASE" -DBUILD_TESTING=ON
+cd lib
+cd comgr
+%cmake -DCMAKE_BUILD_TYPE="RELEASE" -DBUILD_TESTING=ON
 %make_build
  
 %install
