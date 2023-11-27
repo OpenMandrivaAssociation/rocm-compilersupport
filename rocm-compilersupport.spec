@@ -22,6 +22,7 @@ Source0:        https://github.com/Mystro256/%{upstreamname}/archive/refs/tags/%
  
 BuildRequires:  cmake
 BuildRequires:  clang-devel >= %{llvm_maj_ver}
+BuildRequires: llvm-static-devel
 #BuildRequires:  clang(major) = %{llvm_maj_ver}
 #BuildRequires:  lld-devel
 #BuildRequires:  llvm-devel(major) = %{llvm_maj_ver}
