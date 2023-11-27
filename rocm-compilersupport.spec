@@ -31,6 +31,9 @@ BuildRequires:  cmake(LLD)
 #BuildRequires:  llvm-devel(major) = %{llvm_maj_ver}
 BuildRequires:  rocm-device-libs
 BuildRequires:  zlib-devel
+BuildRequires:  libclc-amdgcn
+BuildRequires:  pkgconfig(libzstd)
+BuildRequires:  pkgconfig(libxml-2.0)
  
 #Only the following architectures are useful for ROCm packages:
 ExclusiveArch:  x86_64 aarch64 ppc64le
