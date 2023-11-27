@@ -11,7 +11,7 @@
  
 Name:           rocm-compilersupport
 Version:        %{llvm_maj_ver}.%{bugfix_version}
-Release:        3%{?dist}
+Release:        1
 Summary:        Various AMD ROCm LLVM related services
  
 Url:            https://github.com/RadeonOpenCompute/ROCm-CompilerSupport
@@ -22,9 +22,9 @@ Source0:        https://github.com/Mystro256/%{upstreamname}/archive/refs/tags/%
  
 BuildRequires:  cmake
 BuildRequires:  clang-devel >= %{llvm_maj_ver}
-BuildRequires:  clang(major) = %{llvm_maj_ver}
+#BuildRequires:  clang(major) = %{llvm_maj_ver}
 BuildRequires:  lld-devel
-BuildRequires:  llvm-devel(major) = %{llvm_maj_ver}
+#BuildRequires:  llvm-devel(major) = %{llvm_maj_ver}
 BuildRequires:  rocm-device-libs >= %{llvm_maj_ver}
 BuildRequires:  zlib-devel
  
@@ -66,12 +66,10 @@ sed -i 's/lib\(\/clang\)/%{_lib}\1/' lib/comgr/src/comgr-compiler.cpp
  
 %build
 %cmake -S lib/comgr -DCMAKE_BUILD_TYPE="RELEASE" -DBUILD_TESTING=ON
-%cmake_build
-%check
-%cmake_build --target test
+%make_build
  
 %install
-%cmake_install
+%make_install -C build
 %files -n rocm-comgr
 %license LICENSE.txt lib/comgr/NOTICES.txt
 %doc lib/comgr/README.md
