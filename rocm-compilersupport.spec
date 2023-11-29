@@ -21,14 +21,12 @@ License:        NCSA
 Source0:        https://github.com/Mystro256/%{upstreamname}/archive/refs/tags/%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
  
 BuildRequires:  cmake
+BuildRequires:	ninja
 BuildRequires:  clang-devel >= %{llvm_maj_ver}
 BuildRequires:  clang
 BuildRequires:  llvm-devel
 BuildRequires: llvm-static-devel
 BuildRequires:  cmake(LLD)
-#BuildRequires:  clang(major) = %{llvm_maj_ver}
-#BuildRequires:  lld-devel
-#BuildRequires:  llvm-devel(major) = %{llvm_maj_ver}
 BuildRequires:  rocm-device-libs
 BuildRequires:  zlib-devel
 BuildRequires:  libclc-amdgcn
@@ -36,7 +34,7 @@ BuildRequires:  pkgconfig(libzstd)
 BuildRequires:  pkgconfig(libxml-2.0)
  
 #Only the following architectures are useful for ROCm packages:
-ExclusiveArch:  x86_64 aarch64 ppc64le
+ExclusiveArch:  %{x86_64} %{aarch64} ppc64le
  
 %description
 This package currently contains one library, the Code Object Manager (Comgr)
@@ -70,15 +68,18 @@ sed -i '/Args.push_back(HIPIncludePath/,+1d' lib/comgr/src/comgr-compiler.cpp
 sed -i '/Args.push_back(ROCMIncludePath/,+1d' lib/comgr/src/comgr-compiler.cpp
 #Source hard codes the libdir too:
 sed -i 's/lib\(\/clang\)/%{_lib}\1/' lib/comgr/src/comgr-compiler.cpp
+
+cd lib/comgr
+%cmake \
+	-DBUILD_TESTING=ON \
+	-G Ninja
  
 %build
-cd lib
-cd comgr
-%cmake -DCMAKE_BUILD_TYPE="RELEASE" -DBUILD_TESTING=ON
-%make_build
+%ninja_build -C lib/comgr/build
  
 %install
-%make_install -C build
+%ninja_install -C lib/comgr/build
+
 %files -n rocm-comgr
 %license LICENSE.txt lib/comgr/NOTICES.txt
 %doc lib/comgr/README.md
