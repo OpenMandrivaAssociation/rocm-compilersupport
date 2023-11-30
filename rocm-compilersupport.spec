@@ -16,8 +16,8 @@ Summary:        Various AMD ROCm LLVM related services
  
 Url:            https://github.com/RadeonOpenCompute/ROCm-CompilerSupport
 License:        NCSA
-# I fork upstream sources because they don't target stable LLVM, but rather the
-# bleeding edge LLVM branch. My fork is a snapshot with bugfixes backported:
+# This is forked upstream sources because they don't target stable LLVM, but rather the
+# bleeding edge LLVM branch. This fork is a snapshot with bugfixes backported:
 Source0:        https://github.com/Mystro256/%{upstreamname}/archive/refs/tags/%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
  
 BuildRequires:  cmake
@@ -25,16 +25,13 @@ BuildRequires:	ninja
 BuildRequires:  clang-devel >= %{llvm_maj_ver}
 BuildRequires:  clang
 BuildRequires:  llvm-devel
-BuildRequires: llvm-static-devel
+BuildRequires:  llvm-static-devel
 BuildRequires:  cmake(LLD)
 BuildRequires:  rocm-device-libs
 BuildRequires:  zlib-devel
 BuildRequires:  libclc-amdgcn
 BuildRequires:  pkgconfig(libzstd)
 BuildRequires:  pkgconfig(libxml-2.0)
- 
-#Only the following architectures are useful for ROCm packages:
-ExclusiveArch:  %{x86_64} %{aarch64} ppc64le
  
 %description
 This package currently contains one library, the Code Object Manager (Comgr)
