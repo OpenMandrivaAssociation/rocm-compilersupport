@@ -11,7 +11,7 @@
  
 Name:           rocm-compilersupport
 Version:        %{llvm_maj_ver}.%{bugfix_version}
-Release:        1
+Release:        2
 Summary:        Various AMD ROCm LLVM related services
  
 Url:            https://github.com/RadeonOpenCompute/ROCm-CompilerSupport
@@ -19,6 +19,7 @@ License:        NCSA
 # This is forked upstream sources because they don't target stable LLVM, but rather the
 # bleeding edge LLVM branch. This fork is a snapshot with bugfixes backported:
 Source0:        https://github.com/Mystro256/%{upstreamname}/archive/refs/tags/%{version}.tar.gz#/%{upstreamname}-%{version}.tar.gz
+Patch0:		rocm-compilersupport-llvm-18.patch
  
 BuildRequires:  cmake
 BuildRequires:	ninja
