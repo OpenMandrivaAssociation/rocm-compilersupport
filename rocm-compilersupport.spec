@@ -11,7 +11,7 @@
  
 Name:           rocm-compilersupport
 Version:        %{llvm_maj_ver}.%{bugfix_version}
-Release:        3
+Release:        4
 Summary:        Various AMD ROCm LLVM related services
  
 Url:            https://github.com/RadeonOpenCompute/ROCm-CompilerSupport
