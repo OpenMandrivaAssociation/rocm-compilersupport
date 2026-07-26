@@ -1,0 +1,10 @@
+--- a/src/hotswap/raiser.cpp	2026-07-23 21:39:58.411341809 +0200
++++ b/src/hotswap/raiser.cpp	2026-07-23 21:48:42.988689270 +0200
+@@ -16,6 +16,7 @@
+ #include "llvm/IR/LLVMContext.h"
+ #include "llvm/IR/Module.h"
+ #include "llvm/TargetParser/TargetParser.h"
++#include "llvm/TargetParser/AMDGPUTargetParser.h"
+ #include "llvm/TargetParser/Triple.h"
+ 
+ namespace COMGR::hotswap {
