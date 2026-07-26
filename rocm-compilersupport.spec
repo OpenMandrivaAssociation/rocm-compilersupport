@@ -24,6 +24,9 @@ BuildRequires:	clang >= %{rocm_llvm_maj_ver}
 BuildRequires:	lib64clang-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	lib64llvm-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	lib64lld-devel >= %{rocm_llvm_maj_ver}
+# comgr links static LLD (liblldELF.a); headers/cmake-only lib64lld-devel is not enough
+BuildRequires:	lib64lldCommon-static-devel >= %{rocm_llvm_maj_ver}
+BuildRequires:	lib64lldELF-static-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	rocm-device-libs
 BuildRequires:	zlib-devel
 BuildRequires:	pkgconfig(libzstd)
