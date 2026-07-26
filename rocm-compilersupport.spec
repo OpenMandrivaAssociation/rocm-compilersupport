@@ -7,6 +7,7 @@
 Name:		rocm-compilersupport
 Version:	7.14.0
 Release:	1
+%{!?rocm_llvm_maj_ver:%global rocm_llvm_maj_ver 23}
 Summary:	AMD ROCm LLVM-related services (Code Object Manager)
 License:	Apache-2.0 WITH LLVM-exception
 Group:		System/Libraries
@@ -20,8 +21,8 @@ BuildRequires:	rocm-rpm-macros
 BuildRequires:	cmake
 BuildRequires:	ninja
 BuildRequires:	clang >= %{rocm_llvm_maj_ver}
-BuildRequires:	libclang-devel >= %{rocm_llvm_maj_ver}
-BuildRequires:	libllvm-devel >= %{rocm_llvm_maj_ver}
+BuildRequires:	lib64clang-devel >= %{rocm_llvm_maj_ver}
+BuildRequires:	lib64llvm-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	lib64lld-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	rocm-device-libs
 BuildRequires:	zlib-devel
