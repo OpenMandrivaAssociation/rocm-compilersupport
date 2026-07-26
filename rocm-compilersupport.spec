@@ -21,8 +21,8 @@ BuildRequires:	rocm-rpm-macros
 BuildRequires:	cmake
 BuildRequires:	ninja
 BuildRequires:	clang >= %{rocm_llvm_maj_ver}
-BuildRequires:	lib64clang-devel >= %{rocm_llvm_maj_ver}
-BuildRequires:	lib64llvm-devel >= %{rocm_llvm_maj_ver}
+BuildRequires:	clang-devel >= %{rocm_llvm_maj_ver}
+BuildRequires:	llvm-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	lib64lld-devel >= %{rocm_llvm_maj_ver}
 # comgr links static LLD (liblldELF.a); headers/cmake-only lib64lld-devel is not enough
 BuildRequires:	lib64lldCommon-static-devel >= %{rocm_llvm_maj_ver}
