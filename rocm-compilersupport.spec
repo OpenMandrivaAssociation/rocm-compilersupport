@@ -44,9 +44,9 @@ Summary:	AMD ROCm Code Object Manager
 Provides:	comgr(major) = %{comgr_maj_api_ver}
 Provides:	rocm-comgr = %{comgr_full_api_ver}-%{release}
 Requires:	rocm-device-libs%{?_isa}
-# comgr dlopens/links against system llvm/clang pieces at runtime
-Requires:	libllvm%{?_isa} >= %{rocm_llvm_maj_ver}
-Requires:	libclang%{?_isa} >= %{rocm_llvm_maj_ver}
+# Shared-lib deps on LLVM/clang are emitted by the ELF generator from
+# NEEDED entries; explicit libllvm/libclang ISA Requires break on arches
+# where those virtual Provides are missing or differently named.
 Obsoletes:	rocm-comgr < %{EVRD}
 
 %description -n rocm-comgr
