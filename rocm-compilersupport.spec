@@ -6,7 +6,7 @@
 
 Name:		rocm-compilersupport
 Version:	7.14.0
-Release:	1
+Release:	2
 %{!?rocm_llvm_maj_ver:%global rocm_llvm_maj_ver 23}
 Summary:	AMD ROCm LLVM-related services (Code Object Manager)
 License:	Apache-2.0 WITH LLVM-exception
@@ -33,7 +33,6 @@ BuildRequires:	pkgconfig(libzstd)
 BuildRequires:	pkgconfig(libxml-2.0)
 BuildRequires:	python3
 
-ExclusiveArch:	%{x86_64} %{aarch64}
 
 %description
 Source package for ROCm compiler-support libraries. Currently ships
