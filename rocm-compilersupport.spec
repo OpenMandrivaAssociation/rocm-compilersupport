@@ -35,6 +35,8 @@ BuildRequires:	rocm-device-libs
 BuildRequires:	zlib-devel
 BuildRequires:	pkgconfig(libzstd)
 BuildRequires:	pkgconfig(libxml-2.0)
+# LLVMSupport INTERFACE_LINK_LIBRARIES hardcodes /usr/lib64/libz3.so
+BuildRequires:	pkgconfig(z3)
 BuildRequires:	python3
 
 
