@@ -1,21 +1,21 @@
-# TheRock 7.14 Code Object Manager (comgr), built against system LLVM 23.
-# Source is filtered amd/comgr from llvm-project @ therock-7.14.
+# TheRock 10.0 Code Object Manager (comgr), built against system LLVM 23.
+# Source is filtered amd/comgr from llvm-project @ therock-10.0.
 
 %global comgr_maj_api_ver 3
 %global comgr_full_api_ver %{comgr_maj_api_ver}.3.0
 
 Name:		rocm-compilersupport
-Version:	7.14.0
-Release:	2
+Version:	10.0.0
+Release:	1
 %{!?rocm_llvm_maj_ver:%global rocm_llvm_maj_ver 23}
 Summary:	AMD ROCm LLVM-related services (Code Object Manager)
 License:	Apache-2.0 WITH LLVM-exception
 Group:		System/Libraries
 URL:		https://github.com/ROCm/llvm-project
 Source0:	amd_comgr-%{version}.tar.gz
+# 10.0 uses std::unordered_set but still omits the include.
 Patch0:		0001-unordered-set-include.patch
-Patch1:		0002-hotswap-amdgpu-parser.patch
-Patch2:		0003-unbundle-offload-bundle.patch
+# AMDGPUTargetParser + OffloadBundle includes are upstream in 10.0.
 
 BuildRequires:	rocm-rpm-macros
 BuildRequires:	cmake
@@ -36,7 +36,7 @@ BuildRequires:	python3
 
 %description
 Source package for ROCm compiler-support libraries. Currently ships
-rocm-comgr (Code Object Manager / libamd_comgr), built from TheRock 7.14
+rocm-comgr (Code Object Manager / libamd_comgr), built from TheRock 10.0
 sources against the system LLVM %{rocm_llvm_maj_ver} toolchain.
 
 %package -n rocm-comgr
