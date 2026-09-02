@@ -27,6 +27,10 @@ BuildRequires:	lib64lld-devel >= %{rocm_llvm_maj_ver}
 # comgr links static LLD (liblldELF.a); headers/cmake-only lib64lld-devel is not enough
 BuildRequires:	lib64lldCommon-static-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	lib64lldELF-static-devel >= %{rocm_llvm_maj_ver}
+# 10.0 always-on hotswap rewriter maps AMDGPUAsmParser/Desc/Disassembler/Info
+# (plus their INTERFACE static deps). LLVM 23 ships those as per-component
+# *-static-devel packages; llvm-devel does not pull them.
+BuildRequires:	llvm-static-devel >= %{rocm_llvm_maj_ver}
 BuildRequires:	rocm-device-libs
 BuildRequires:	zlib-devel
 BuildRequires:	pkgconfig(libzstd)
