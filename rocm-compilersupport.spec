@@ -16,6 +16,8 @@ URL:		https://github.com/ROCm/llvm-project
 Source0:	amd_comgr-%{version}.tar.gz
 # 10.0 uses std::unordered_set but still omits the include.
 Patch0:		0001-unordered-set-include.patch
+# LLVM 23 has no gfx1250-strict ELF id and no GPUKind SGPR helpers.
+Patch1:		0002-llvm23-isa-metadata.patch
 # AMDGPUTargetParser + OffloadBundle includes are upstream in 10.0.
 
 BuildRequires:	rocm-rpm-macros

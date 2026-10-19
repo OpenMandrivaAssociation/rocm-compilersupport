@@ -1,0 +1,68 @@
+--- a/src/comgr-isa-metadata.def	2026-10-19 09:34:24.596686662 +0200
++++ b/src/comgr-isa-metadata.def	2026-10-19 09:34:24.588686571 +0200
+@@ -75,7 +75,6 @@
+ HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1200",         EF_AMDGPU_MACH_AMDGCN_GFX1200,         true, true,   65536,   32,   4,    40, 1024,    24, 1536,  256)
+ HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1201",         EF_AMDGPU_MACH_AMDGCN_GFX1201,         true, true,   65536,   32,   4,    40, 1024,    24, 1536,  256)
+ HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1250",         EF_AMDGPU_MACH_AMDGCN_GFX1250,         true, false, 327680,   64,   4,    40, 1024,    16, 1024, 1024)
+-HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1250-strict",  EF_AMDGPU_MACH_AMDGCN_GFX1250_STRICT,  true, false, 327680,   64,   4,    40, 1024,    16, 1024, 1024)
+ HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1251",         EF_AMDGPU_MACH_AMDGCN_GFX1251,         true, false, 327680,   64,   4,    40, 1024,    16, 1024, 1024)
+ HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1310",         EF_AMDGPU_MACH_AMDGCN_GFX1310,         true, true,   65536,   32,   4,    40, 1024,    24, 1536,  256)
+ 
+--- a/src/comgr-metadata.cpp	2026-10-19 09:34:24.592686616 +0200
++++ b/src/comgr-metadata.cpp	2026-10-19 09:34:24.588686571 +0200
+@@ -484,6 +484,39 @@
+ 
+ const char *getIsaName(size_t Index) { return IsaInfos[Index].IsaName; }
+ 
++// LLVM 23 exposes these counts only through MCSubtargetInfo. The TargetParser
++// IsaVersion is enough to reproduce the same table.
++static bool sgprInitBug(StringRef Processor) {
++  return Processor == "gfx600" || Processor == "gfx601" ||
++         Processor == "gfx602";
++}
++
++static unsigned addressableNumSGPRs(StringRef Processor) {
++  // SI cannot initialize the upper SGPRs.
++  if (sgprInitBug(Processor))
++    return 96;
++  auto Version = AMDGPU::getIsaVersion(Processor);
++  if (Version.Major >= 10)
++    return 106;
++  if (Version.Major >= 8)
++    return 102;
++  return 104;
++}
++
++static unsigned sgprAllocGranule(StringRef Processor) {
++  auto Version = AMDGPU::getIsaVersion(Processor);
++  if (Version.Major >= 10)
++    return addressableNumSGPRs(Processor);
++  if (Version.Major >= 8)
++    return 16;
++  return 8;
++}
++
++static unsigned totalNumSGPRs(StringRef Processor) {
++  auto Version = AMDGPU::getIsaVersion(Processor);
++  return Version.Major >= 8 ? 800 : 512;
++}
++
+ amd_comgr_status_t getIsaMetadata(StringRef IsaName,
+                                   llvm::msgpack::Document &Doc) {
+   amd_comgr_status_t Status;
+@@ -554,12 +587,12 @@
+   Root["MaxFlatWorkGroupSize"] =
+       Doc.getNode(std::to_string(Info.MaxFlatWorkGroupSize), /*Copy=*/true);
+   Root["SGPRAllocGranule"] =
+-      Doc.getNode(std::to_string(AMDGPU::getSGPRAllocGranule(Kind)),
++      Doc.getNode(std::to_string(sgprAllocGranule(Info.Processor)),
+                   /*Copy=*/true);
+   Root["TotalNumSGPRs"] = Doc.getNode(
+-      std::to_string(AMDGPU::getTotalNumSGPRs(Kind)), /*Copy=*/true);
++      std::to_string(totalNumSGPRs(Info.Processor)), /*Copy=*/true);
+   Root["AddressableNumSGPRs"] = Doc.getNode(
+-      std::to_string(AMDGPU::getAddressableNumSGPRs(Kind)), /*Copy=*/true);
++      std::to_string(addressableNumSGPRs(Info.Processor)), /*Copy=*/true);
+   Root["VGPRAllocGranule"] =
+       Doc.getNode(std::to_string(Info.VGPRAllocGranule), /*Copy=*/true);
+   Root["TotalNumVGPRs"] =
