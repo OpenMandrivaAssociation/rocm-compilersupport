@@ -1,11 +1,12 @@
-# TheRock 10.0 Code Object Manager (comgr), built against system LLVM 23.
-# Source is filtered amd/comgr from llvm-project @ therock-10.0.
+# TheRock 10.1 Code Object Manager (comgr), built against system LLVM 23.
+# Source is filtered amd/comgr from llvm-project @ therock-10.1.
+# Upstream amdclang is LLVM 24; cooker clang is still 23.1.3.
 
 %global comgr_maj_api_ver 3
-%global comgr_full_api_ver %{comgr_maj_api_ver}.3.0
+%global comgr_full_api_ver %{comgr_maj_api_ver}.5.0
 
 Name:		rocm-compilersupport
-Version:	10.0.0
+Version:	10.1.0
 Release:	1
 %{!?rocm_llvm_maj_ver:%global rocm_llvm_maj_ver 23}
 Summary:	AMD ROCm LLVM-related services (Code Object Manager)
@@ -42,8 +43,9 @@ BuildRequires:	python3
 
 %description
 Source package for ROCm compiler-support libraries. Currently ships
-rocm-comgr (Code Object Manager / libamd_comgr), built from TheRock 10.0
+rocm-comgr (Code Object Manager / libamd_comgr), built from TheRock 10.1
 sources against the system LLVM %{rocm_llvm_maj_ver} toolchain.
+comgr API 3.5.0 (SONAME stays libamd_comgr.so.3).
 
 %package -n rocm-comgr
 Summary:	AMD ROCm Code Object Manager
