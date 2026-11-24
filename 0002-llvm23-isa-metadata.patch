@@ -1,21 +1,42 @@
---- a/src/comgr-isa-metadata.def	2026-10-19 09:34:24.596686662 +0200
-+++ b/src/comgr-isa-metadata.def	2026-10-19 09:34:24.588686571 +0200
-@@ -75,7 +75,6 @@
- HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1200",         EF_AMDGPU_MACH_AMDGCN_GFX1200,         true, true,   65536,   32,   4,    40, 1024,    24, 1536,  256)
- HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1201",         EF_AMDGPU_MACH_AMDGCN_GFX1201,         true, true,   65536,   32,   4,    40, 1024,    24, 1536,  256)
- HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1250",         EF_AMDGPU_MACH_AMDGCN_GFX1250,         true, false, 327680,   64,   4,    40, 1024,    16, 1024, 1024)
--HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1250-strict",  EF_AMDGPU_MACH_AMDGCN_GFX1250_STRICT,  true, false, 327680,   64,   4,    40, 1024,    16, 1024, 1024)
- HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1251",         EF_AMDGPU_MACH_AMDGCN_GFX1251,         true, false, 327680,   64,   4,    40, 1024,    16, 1024, 1024)
- HANDLE_ISA("amdgcn-amd-amdhsa-", "gfx1310",         EF_AMDGPU_MACH_AMDGCN_GFX1310,         true, true,   65536,   32,   4,    40, 1024,    24, 1536,  256)
+System LLVM 23 has no AMDGPU::getFeatureBitset, getLocalMemorySize,
+or the VGPR/SGPR GPUKind helpers comgr 10.2 calls. xnack and sramecc
+come from getArchAttrAMDGCN. SGPR counts come from getIsaVersion.
+The other ISA fields are the 10.1 published table, including EUsPerCU
+4 and MaxWavesPerCU 40. gfx13-generic falls back to the gfx1310 row.
+
+--- a/src/comgr-metadata.cpp
++++ b/src/comgr-metadata.cpp
+@@ -31,6 +31,7 @@
+ #include "llvm/Support/MemoryBuffer.h"
+ #include "llvm/Support/TargetSelect.h"
+ #include "llvm/Support/raw_ostream.h"
++#include "llvm/ADT/StringMap.h"
+ #include "llvm/TargetParser/AMDGPUTargetParser.h"
+ #include <cstddef>
+ #include <iostream>
+@@ -475,19 +476,143 @@
+   return AMD_COMGR_STATUS_SUCCESS;
+ }
  
---- a/src/comgr-metadata.cpp	2026-10-19 09:34:24.592686616 +0200
-+++ b/src/comgr-metadata.cpp	2026-10-19 09:34:24.588686571 +0200
-@@ -484,6 +484,39 @@
- 
- const char *getIsaName(size_t Index) { return IsaInfos[Index].IsaName; }
- 
-+// LLVM 23 exposes these counts only through MCSubtargetInfo. The TargetParser
-+// IsaVersion is enough to reproduce the same table.
++// LLVM 23's TargetParser has no feature-bitset or per-kind memory helpers.
++// SGPR counts follow IsaVersion, the same split LLVM 24
++// uses. Image, LDS, EU, wave, workgroup, and VGPR counts are the 10.1
++// published table: the 10.2 formulas need tablegen GPUInfo and feature bits
++// this clang does not expose, and changing only EUsPerCU would desync
++// MaxWavesPerCU. gfx13-generic is in clang 23 and not in that table; it
++// matches the gfx1310 / gfx12-generic row.
++struct IsaMetaRow {
++  bool Image;
++  unsigned LDS;
++  unsigned Banks;
++  unsigned EUs;
++  unsigned Waves;
++  unsigned WG;
++  unsigned VgprAlloc;
++  unsigned VgprTotal;
++  unsigned VgprAddr;
++};
++
 +static bool sgprInitBug(StringRef Processor) {
 +  return Processor == "gfx600" || Processor == "gfx601" ||
 +         Processor == "gfx602";
@@ -47,22 +68,181 @@
 +  return Version.Major >= 8 ? 800 : 512;
 +}
 +
- amd_comgr_status_t getIsaMetadata(StringRef IsaName,
-                                   llvm::msgpack::Document &Doc) {
-   amd_comgr_status_t Status;
-@@ -554,12 +587,12 @@
-   Root["MaxFlatWorkGroupSize"] =
-       Doc.getNode(std::to_string(Info.MaxFlatWorkGroupSize), /*Copy=*/true);
++static std::optional<IsaMetaRow> lookupIsaMeta(StringRef Processor) {
++  static const StringMap<IsaMetaRow> Table = {
++      {"gfx600", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx601", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx602", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx700", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx701", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx702", IsaMetaRow{true, 65536, 16, 4, 40, 1024, 4, 256, 256}},
++      {"gfx703", IsaMetaRow{true, 65536, 16, 4, 40, 1024, 4, 256, 256}},
++      {"gfx704", IsaMetaRow{true, 65536, 16, 4, 40, 1024, 4, 256, 256}},
++      {"gfx705", IsaMetaRow{true, 65536, 16, 4, 40, 1024, 4, 256, 256}},
++      {"gfx801", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx802", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx803", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx805", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx810", IsaMetaRow{true, 65536, 16, 4, 40, 1024, 4, 256, 256}},
++      {"gfx900", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx902", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx904", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx906", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx908", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx909", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx90a", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 512, 512}},
++      {"gfx90c", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx942", IsaMetaRow{false, 65536, 32, 4, 40, 1024, 8, 512, 512}},
++      {"gfx950", IsaMetaRow{false, 65536, 32, 4, 40, 1024, 8, 512, 512}},
++      {"gfx1010", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1011", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1012", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1013", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1030", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1031", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1032", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1033", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1034", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1035", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1036", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx1100", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 24, 1536, 256}},
++      {"gfx1101", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 24, 1536, 256}},
++      {"gfx1102", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1103", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1150", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1151", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 24, 1536, 256}},
++      {"gfx1152", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1153", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1154", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1170", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1171", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1172", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx1200", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 24, 1536, 256}},
++      {"gfx1201", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 24, 1536, 256}},
++      {"gfx1250", IsaMetaRow{false, 327680, 64, 4, 40, 1024, 16, 1024, 1024}},
++      {"gfx1250-strict", IsaMetaRow{false, 327680, 64, 4, 40, 1024, 16, 1024, 1024}},
++      {"gfx1251", IsaMetaRow{false, 327680, 64, 4, 40, 1024, 16, 1024, 1024}},
++      {"gfx1310", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 24, 1536, 256}},
++      {"gfx9-generic", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 4, 256, 256}},
++      {"gfx9-4-generic", IsaMetaRow{false, 65536, 32, 4, 40, 1024, 8, 512, 512}},
++      {"gfx10-1-generic", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx10-3-generic", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 8, 1024, 256}},
++      {"gfx11-generic", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx11-7-generic", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 16, 1024, 256}},
++      {"gfx12-generic", IsaMetaRow{true, 65536, 32, 4, 40, 1024, 24, 1536, 256}},
++      {"gfx12-5-generic", IsaMetaRow{false, 327680, 64, 4, 40, 1024, 16, 1024, 1024}}
++  };
++  auto It = Table.find(Processor);
++  if (It != Table.end())
++    return It->second;
++  if (Processor == "gfx13-generic") {
++    auto Fallback = Table.find("gfx1310");
++    if (Fallback != Table.end())
++      return Fallback->second;
++  }
++  return std::nullopt;
++}
++
+ bool isSupportedFeature(size_t IsaIndex, StringRef Feature) {
+   if (Feature.empty() ||
+       (Feature.take_back() != "+" && Feature.take_back() != "-")) {
+     return false;
+   }
+ 
+-  const AMDGPU::AMDGPUFeatureBitset &Features =
+-      AMDGPU::getFeatureBitset(getIsaInfos()[IsaIndex].Kind);
++  unsigned ArchAttr = AMDGPU::getArchAttrAMDGCN(getIsaInfos()[IsaIndex].Kind);
+ 
+   return (Feature.drop_back() == "xnack" &&
+-          Features.test(AMDGPU::FEAT_XNACK_ON_OFF_MODES)) ||
++          (ArchAttr & AMDGPU::FEATURE_XNACK_ON_OFF_MODES)) ||
+          (Feature.drop_back() == "sramecc" &&
+-          Features.test(AMDGPU::FEAT_SRAMECC_SUPPORT));
++          (ArchAttr & AMDGPU::FEATURE_SRAMECC));
+ }
+ 
+ const char *getIsaName(size_t Index) {
+@@ -521,13 +646,14 @@
+   Root["Version"] = Doc.getNode("1.0.0", /*Copy=*/true);
+ 
+   AMDGPU::GPUKind Kind = getIsaInfos()[IsaIndex].Kind;
+-  const AMDGPU::AMDGPUFeatureBitset &Features = AMDGPU::getFeatureBitset(Kind);
++  StringRef Processor = AMDGPU::getArchNameAMDGCN(Kind);
++  unsigned ArchAttr = AMDGPU::getArchAttrAMDGCN(Kind);
+ 
+   auto FeaturesNode = Doc.getMapNode();
+-  if (Features.test(AMDGPU::FEAT_XNACK_ON_OFF_MODES)) {
++  if (ArchAttr & AMDGPU::FEATURE_XNACK_ON_OFF_MODES) {
+     FeaturesNode["xnack"] = Doc.getNode("any", /*Copy=*/true);
+   }
+-  if (Features.test(AMDGPU::FEAT_SRAMECC_SUPPORT)) {
++  if (ArchAttr & AMDGPU::FEATURE_SRAMECC) {
+     FeaturesNode["sramecc"] = Doc.getNode("any", /*Copy=*/true);
+   }
+ 
+@@ -551,43 +677,35 @@
+ 
+   Root["Features"] = FeaturesNode;
+ 
++  auto Row = lookupIsaMeta(Processor);
++  if (!Row)
++    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
++
+   Root["TrapHandlerEnabled"] =
+       Doc.getNode(std::to_string(isTrapHandlerEnabled(Kind)), /*Copy=*/true);
+-  Root["ImageSupport"] = Doc.getNode(
+-      std::to_string(Features.test(AMDGPU::FEAT_IMAGE_INSTS)), /*Copy=*/true);
+-  // Report total LDS capacity in full-SIMD mode.
+-  Root["LocalMemorySize"] = Doc.getNode(
+-      std::to_string(AMDGPU::getLocalMemorySize(Kind, /*FullSIMDMode=*/true)),
+-      /*Copy=*/true);
+-  // Report physical-CU counts independently of the workgroup execution mode.
+-  // GFX10+ has two SIMDs per CU; earlier targets have four.
+-  unsigned EUsPerCU = Features.test(AMDGPU::FEAT_GFX10_INSTS) ? 2 : 4;
+-  Root["EUsPerCU"] = Doc.getNode(std::to_string(EUsPerCU), /*Copy=*/true);
+-  Root["MaxWavesPerCU"] = Doc.getNode(
+-      std::to_string(AMDGPU::getMaxWavesPerEU(Kind) * EUsPerCU), /*Copy=*/true);
+-  Root["MaxFlatWorkGroupSize"] = Doc.getNode(
+-      std::to_string(AMDGPU::getMaxFlatWorkGroupSize()), /*Copy=*/true);
++  Root["ImageSupport"] =
++      Doc.getNode(std::to_string(Row->Image), /*Copy=*/true);
++  Root["LocalMemorySize"] =
++      Doc.getNode(std::to_string(Row->LDS), /*Copy=*/true);
++  Root["EUsPerCU"] = Doc.getNode(std::to_string(Row->EUs), /*Copy=*/true);
++  Root["MaxWavesPerCU"] =
++      Doc.getNode(std::to_string(Row->Waves), /*Copy=*/true);
++  Root["MaxFlatWorkGroupSize"] =
++      Doc.getNode(std::to_string(Row->WG), /*Copy=*/true);
    Root["SGPRAllocGranule"] =
 -      Doc.getNode(std::to_string(AMDGPU::getSGPRAllocGranule(Kind)),
-+      Doc.getNode(std::to_string(sgprAllocGranule(Info.Processor)),
-                   /*Copy=*/true);
-   Root["TotalNumSGPRs"] = Doc.getNode(
+-                  /*Copy=*/true);
+-  Root["TotalNumSGPRs"] = Doc.getNode(
 -      std::to_string(AMDGPU::getTotalNumSGPRs(Kind)), /*Copy=*/true);
-+      std::to_string(totalNumSGPRs(Info.Processor)), /*Copy=*/true);
++      Doc.getNode(std::to_string(sgprAllocGranule(Processor)), /*Copy=*/true);
++  Root["TotalNumSGPRs"] =
++      Doc.getNode(std::to_string(totalNumSGPRs(Processor)), /*Copy=*/true);
    Root["AddressableNumSGPRs"] = Doc.getNode(
 -      std::to_string(AMDGPU::getAddressableNumSGPRs(Kind)), /*Copy=*/true);
-+      std::to_string(addressableNumSGPRs(Info.Processor)), /*Copy=*/true);
+-  // Report wave32 VGPR counts and allocation granularity wherever wave32
+-  // exists.
+-  bool IsWave32 = Features.test(AMDGPU::FEAT_GFX10_INSTS);
++      std::to_string(addressableNumSGPRs(Processor)), /*Copy=*/true);
    Root["VGPRAllocGranule"] =
-       Doc.getNode(std::to_string(Info.VGPRAllocGranule), /*Copy=*/true);
+-      Doc.getNode(std::to_string(AMDGPU::getVGPRAllocGranule(Kind, IsWave32)),
+-                  /*Copy=*/true);
++      Doc.getNode(std::to_string(Row->VgprAlloc), /*Copy=*/true);
    Root["TotalNumVGPRs"] =
+-      Doc.getNode(std::to_string(AMDGPU::getTotalNumVGPRs(Kind, IsWave32)),
+-                  /*Copy=*/true);
+-  Root["AddressableNumVGPRs"] = Doc.getNode(
+-      std::to_string(AMDGPU::getAddressableNumVGPRs(Kind, IsWave32)),
+-      /*Copy=*/true);
++      Doc.getNode(std::to_string(Row->VgprTotal), /*Copy=*/true);
++  Root["AddressableNumVGPRs"] =
++      Doc.getNode(std::to_string(Row->VgprAddr), /*Copy=*/true);
+   Root["LDSBankCount"] =
+-      Doc.getNode(std::to_string(AMDGPU::getLDSBankCount(Kind)), /*Copy=*/true);
++      Doc.getNode(std::to_string(Row->Banks), /*Copy=*/true);
+ 
+   return AMD_COMGR_STATUS_SUCCESS;
+ }
